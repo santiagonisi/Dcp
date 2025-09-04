@@ -15,28 +15,26 @@ class DcpApp(QMainWindow):
         self.setWindowTitle("ensayo DCP")
         self.setGeometry(100, 100, 1000, 720)
 
-        # Unidad seleccionada por el usuario (no convierte, solo etiqueta)
+        
         self.unidad_dn = "golpes/mm"
-
-        # Para re-graficar al cambiar opciones
         self.last_df_excel = None
         self.last_df_manual = None
 
-        # Tabs principales
+        
         self.tabs = QTabWidget()
         self.setCentralWidget(self.tabs)
 
-        # Tab Excel
+        
         self.tab_excel = QWidget()
         self.tabs.addTab(self.tab_excel, "Cargar desde Excel")
         self.init_tab_excel()
 
-        # Tab Manual
+        
         self.tab_manual = QWidget()
         self.tabs.addTab(self.tab_manual, "Ingreso manual")
         self.init_tab_manual()
 
-    # ----- UTIL -----
+    
     def _extract_depth_dn(self, df: pd.DataFrame):
         name_map = {c.lower().strip(): c for c in df.columns}
         depth_key = None
@@ -55,7 +53,7 @@ class DcpApp(QMainWindow):
         out = out.sort_values("Profundidad [mm]").reset_index(drop=True)
         return out
 
-    # -------- TAB EXCEL --------
+    
     def init_tab_excel(self):
         layout = QVBoxLayout()
 
@@ -110,7 +108,7 @@ class DcpApp(QMainWindow):
         if self.last_df_excel is not None:
             self.plot_data(self.last_df_excel, self.figure_excel, self.canvas_excel, self.table_excel, invert_y=self.invert_y_excel.isChecked())
 
-    # -------- TAB MANUAL --------
+    
     def init_tab_manual(self):
         layout = QVBoxLayout()
 
@@ -238,7 +236,7 @@ class DcpApp(QMainWindow):
         if self.last_df_manual is not None:
             self.plot_data(self.last_df_manual, self.figure_manual, self.canvas_manual, None, invert_y=self.invert_y_manual.isChecked())
 
-    # -------- EXPORTAR --------
+    
     def save_figure(self, figure: Figure):
         if figure is None:
             return
