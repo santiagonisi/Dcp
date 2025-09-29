@@ -4,38 +4,20 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 import os
-from datetime import datetime
-
-
-def crear_carpeta_resultados(nombre_ensayo="Ensayo"):
-    """Crea carpeta en Escritorio para guardar resultados de cada ensayo."""
-    escritorio = os.path.join(os.path.expanduser("~"), "Desktop")
-    carpeta_base = os.path.join(escritorio, "Resultados_DCP")
-    os.makedirs(carpeta_base, exist_ok=True)
-
-    
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    carpeta_ensayo = os.path.join(carpeta_base, f"{nombre_ensayo}_{timestamp}")
-    os.makedirs(carpeta_ensayo, exist_ok=True)
-
-    return carpeta_ensayo
 
 
 def procesar_dcp(df):
     """Procesa datos de ensayo DCP: calcula N° golpes, profundidad y DN."""
     df = df.sort_values("N° Golpes Ac.").reset_index(drop=True)
 
-    
     df["N° Golpes"] = df["N° Golpes Ac."].diff().fillna(df["N° Golpes Ac."])
 
-    
     prof = [0]
     for i in range(1, len(df)):
         delta_d = df.loc[i - 1, "Lectura (mm)"] - df.loc[i, "Lectura (mm)"]
-        prof.append(prof[-1] + delta_d * 10) 
+        prof.append(prof[-1] + delta_d * 10)
     df["Prof. (mm)"] = prof
 
-    # DN (mm/golpe)
     dn_values = [None]
     for i in range(1, len(df)):
         delta_d = df.loc[i - 1, "Lectura (mm)"] - df.loc[i, "Lectura (mm)"]
@@ -48,14 +30,10 @@ def procesar_dcp(df):
 
 
 def graficar_escalonado(df, titulo="DCP - Escalonado"):
-    """Gráfico escalonado: DN vs Profundidad."""
     x_vals, y_vals = [], []
-
     for i in range(len(df)):
         dn = df.loc[i, "DN (mm/golpe)"]
         p = df.loc[i, "Prof. (mm)"]
-
-        
         x_vals.extend([dn, dn])
         y_vals.extend([df.loc[i - 1, "Prof. (mm)"] if i > 0 else 0, p])
 
@@ -70,7 +48,6 @@ def graficar_escalonado(df, titulo="DCP - Escalonado"):
 
 
 def graficar_resistencia(df, titulo="DCP - Resistencia"):
-    """Gráfico clásico: DN vs Profundidad (línea continua)."""
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.plot(df["DN (mm/golpe)"], df["Prof. (mm)"], marker="o", linestyle="-", color="red")
     ax.set_xlabel("DN (mm/golpe)")
@@ -82,7 +59,6 @@ def graficar_resistencia(df, titulo="DCP - Resistencia"):
 
 
 def graficar_penetracion(df, titulo="DCP - Penetración"):
-    """Gráfico: Lectura vs Profundidad."""
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.plot(df["Lectura (mm)"], df["Prof. (mm)"], marker="s", linestyle="--", color="green")
     ax.set_xlabel("Lectura (mm)")
@@ -94,7 +70,6 @@ def graficar_penetracion(df, titulo="DCP - Penetración"):
 
 
 def buscar_columnas(df):
-    """Detecta columnas de golpes acumulados y lectura."""
     golpes_col, lectura_col = None, None
     for col in df.columns:
         col_norm = col.lower()
@@ -105,26 +80,27 @@ def buscar_columnas(df):
     return golpes_col, lectura_col
 
 
-def exportar_resultados(df, nombre_ensayo="Ensayo"):
-    """Exporta datos y gráficos en carpeta del ensayo."""
-    carpeta = crear_carpeta_resultados(nombre_ensayo)
+def exportar_resultados(df, nombre_base):
+    """Exporta datos y gráficos con mismo nombre base (Excel, PDF y PNGs)."""
+    carpeta = os.path.dirname(nombre_base)
+    base = os.path.splitext(os.path.basename(nombre_base))[0]
 
-    # Excel
-    archivo_excel = os.path.join(carpeta, f"{nombre_ensayo}.xlsx")
+    archivo_excel = os.path.join(carpeta, f"{base}.xlsx")
+    archivo_pdf = os.path.join(carpeta, f"{base}.pdf")
+    archivo_png1 = os.path.join(carpeta, f"{base}_escalonado.png")
+    archivo_png2 = os.path.join(carpeta, f"{base}_resistencia.png")
+    archivo_png3 = os.path.join(carpeta, f"{base}_penetracion.png")
+
     df.to_excel(archivo_excel, index=False)
 
-    # Gráficos
     fig1 = graficar_escalonado(df)
     fig2 = graficar_resistencia(df)
     fig3 = graficar_penetracion(df)
 
-    # PNG 
-    fig1.savefig(os.path.join(carpeta, f"{nombre_ensayo}_escalonado.png"))
-    fig2.savefig(os.path.join(carpeta, f"{nombre_ensayo}_resistencia.png"))
-    fig3.savefig(os.path.join(carpeta, f"{nombre_ensayo}_penetracion.png"))
+    fig1.savefig(archivo_png1)
+    fig2.savefig(archivo_png2)
+    fig3.savefig(archivo_png3)
 
-    # PDF
-    archivo_pdf = os.path.join(carpeta, f"{nombre_ensayo}.pdf")
     with PdfPages(archivo_pdf) as pdf:
         pdf.savefig(fig1)
         pdf.savefig(fig2)
@@ -132,10 +108,7 @@ def exportar_resultados(df, nombre_ensayo="Ensayo"):
 
     plt.close("all")
 
-    messagebox.showinfo(
-        "Éxito",
-        f"Resultados exportados en:\n{carpeta}\n\nSe generaron:\n- Excel con tabla completa\n- PDF con gráficos\n- PNG individuales"
-    )
+    messagebox.showinfo("Éxito", f"Archivos exportados en:\n{carpeta}")
 
 
 def cargar_excel():
@@ -149,7 +122,6 @@ def cargar_excel():
     try:
         xls = pd.ExcelFile(archivo)
 
-       
         hoja_window = tk.Toplevel(root)
         hoja_window.title("Seleccionar hoja")
 
@@ -167,7 +139,14 @@ def cargar_excel():
                 df_sel = df[[golpes_col, lectura_col]].copy()
                 df_sel.columns = ["N° Golpes Ac.", "Lectura (mm)"]
                 df_proc = procesar_dcp(df_sel)
-                exportar_resultados(df_proc, nombre_ensayo=f"Ensayo_{hoja}")
+
+                nombre_salida = filedialog.asksaveasfilename(
+                    title="Guardar resultados como",
+                    defaultextension=".xlsx",
+                    filetypes=[("Archivos Excel", "*.xlsx")]
+                )
+                if nombre_salida:
+                    exportar_resultados(df_proc, nombre_salida)
             else:
                 messagebox.showwarning("Atención", "No se encontraron columnas válidas en la hoja seleccionada.")
 
@@ -217,7 +196,14 @@ def ingreso_manual():
 
         df = pd.DataFrame(datos, columns=["N° Golpes Ac.", "Lectura (mm)"])
         df_proc = procesar_dcp(df)
-        exportar_resultados(df_proc, nombre_ensayo="Ensayo_Manual")
+
+        nombre_salida = filedialog.asksaveasfilename(
+            title="Guardar resultados como",
+            defaultextension=".xlsx",
+            filetypes=[("Archivos Excel", "*.xlsx")]
+        )
+        if nombre_salida:
+            exportar_resultados(df_proc, nombre_salida)
         ventana.destroy()
 
     tk.Button(ventana, text="Procesar", command=procesar_manual).pack(pady=10)
