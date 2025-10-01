@@ -47,10 +47,16 @@ def graficar_escalonado(df, titulo="DCP - Escalonado"):
     return fig
 
 
-def graficar_resistencia(df, titulo="DCP - Resistencia"):
+def graficar_resistencia(df, titulo="DCP - CBR estimado (IMAE)"):
+    """Gráfico de CBR estimado vs profundidad usando la correlación IMAE."""
+    df_cbr = df.copy()
+    df_cbr["CBR (%)"] = df_cbr["DN (mm/golpe)"].apply(
+        lambda dn: 190 * (dn ** -0.88) if pd.notnull(dn) and dn > 0 else None
+    )
+
     fig, ax = plt.subplots(figsize=(6, 6))
-    ax.plot(df["DN (mm/golpe)"], df["Prof. (mm)"], marker="o", linestyle="-", color="red")
-    ax.set_xlabel("DN (mm/golpe)")
+    ax.plot(df_cbr["CBR (%)"], df_cbr["Prof. (mm)"], marker="o", linestyle="-", color="red")
+    ax.set_xlabel("CBR estimado (%)")
     ax.set_ylabel("Profundidad (mm)")
     ax.set_title(titulo)
     ax.grid(True)
@@ -58,10 +64,11 @@ def graficar_resistencia(df, titulo="DCP - Resistencia"):
     return fig
 
 
-def graficar_penetracion(df, titulo="DCP - Penetración"):
+def graficar_penetracion(df, titulo="DCP - Penetración acumulada"):
+    """Gráfico de N° golpes acumulados vs profundidad."""
     fig, ax = plt.subplots(figsize=(6, 6))
-    ax.plot(df["Lectura (mm)"], df["Prof. (mm)"], marker="s", linestyle="--", color="green")
-    ax.set_xlabel("Lectura (mm)")
+    ax.plot(df["N° Golpes Ac."], df["Prof. (mm)"], marker="s", linestyle="--", color="green")
+    ax.set_xlabel("N° Golpes acumulados")
     ax.set_ylabel("Profundidad (mm)")
     ax.set_title(titulo)
     ax.grid(True)
@@ -172,7 +179,7 @@ def ingreso_manual():
 
     entradas_golpes, entradas_lectura = [], []
 
-    for i in range(15):
+    for i in range(25):
         e1 = tk.Entry(frame, width=10)
         e2 = tk.Entry(frame, width=10)
         e1.grid(row=i + 1, column=0, padx=5, pady=2)
